@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <title>Ana sayfa</title>
+    <style>
+        .movies-container {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+
+        .movie-card {
+            flex: 0 0 auto;
+            width: 170px;
+            text-align: left;
+            margin-right: 10px;
+            /* Posterler arası boşluk */
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            cursor: pointer;
+            /* Posterler tıklanabilir olsun */
+        }
+
+        .movie-details {
+            padding: 10px;
+        }
+
+        .movie-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: black;
+            /* Film başlıkları siyah olsun */
+            text-decoration: none;
+            /* Altı çizili olmasın */
+            cursor: pointer;
+            /* Başlıklar tıklanabilir olsun */
+        }
+
+        .movie-title:hover {
+            color: #3ba0b2;
+            /* Fareyle üzerine gelindiğinde grileşsin */
+        }
+
+        .movie-release-date {
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .movie-card img {
+            width: 150px;
+            /* İstenen boyut */
+            height: 225px;
+            /* İstenen boyut */
+            object-fit: cover;
+        }
+
+        body {
+          margin: 0;
+          padding: 0;
+          margin-top: 64px;
+          background-color: #042541;
+        }
+
+    </style>
+</head>
+
+<body>
+    <%- include('partials/header') %>
+    <div class="container-fluid" style="background-color: white;">
+    <div class="container" >
+        <h1>Trend</h1>
+        <div class="movies-container">
+            <% movies.forEach(movie=> { %>
+                <div class="movie-card">
+                    <a href="/movie/<%= movie.id %>">
+                        <img src="https://image.tmdb.org/t/p/original/<%= movie.poster_path %>"
+                            alt="<%= movie.title %>">
+                    </a>
+                    <div class="movie-details">
+                        <a href="/movie/<%= movie.id %>" class="movie-title">
+                            <%= movie.title %>
+                        </a>
+                        <div class="movie-release-date">
+                            <%= movie.release_date %>
+                        </div>
+                    </div>
+                </div>
+                <% }); %>
+        </div>
+    </div>
+  </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+        </script>
+    <script>
+       const filmsTab = document.getElementById('films-tab');
+const tabs = document.querySelectorAll('.tab');
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 0) {
+    header.style.top = '-60px';
+  } else {
+    header.style.top = '0';
+  }
+});
+
+tabs.forEach(tab => {
+  tab.addEventListener('mouseover', () => {
+    tabs.forEach(t => t.classList.remove('active-tab'));
+    tab.classList.add('active-tab');
+  });
+});
+    </script>
+</body>
+
+</html>
