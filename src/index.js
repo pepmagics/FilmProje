@@ -42,6 +42,7 @@ app.use(flash());
 
 app.use((req, res, next) => {
     res.locals.isLoggedIn = req.isAuthenticated();
+    res.locals.user = req.user || null;
     next();
 });
 
@@ -207,78 +208,85 @@ app.post("/signup", async (req, res) => {
     res.render("signup", { message: "Kullanıcı başarıyla kaydedildi", checkingMessage });
 });
 
-app.post('/logout', (req, res) => {
+app.get('/logout', (req, res) => {
     req.logOut(() => {
         res.redirect('/');
     });
 });
 
-app.get('/profile', (req, res) => {
+app.get('/profile/:username', async (req, res) => {
     if (!req.isAuthenticated()) {
         return res.redirect('/login');
     }
-    res.render('profile', { user: req.user });
-});
-
-
-// Favoriler sayfasını göster
-app.get('/favorites', async (req, res) => {
+    
     try {
-        // Kullanıcı oturum açmış mı kontrol et
-        if (!req.isAuthenticated()) {
-            return res.redirect('/login'); // Oturum açmamışsa giriş sayfasına yönlendir
-        }
         
-        // Kullanıcının favori filmlerini veri tabanından al
-        const favorites = await UserList.find({ userId: req.user._id, listType: 'favorites' });
-
-        // Favori filmleri listesi
-        const favoriteMovies = [];
-
-        // Her bir favori filmin API isteğini yap ve diziye ekle
-        for (const favorite of favorites) {
-            const apiKey = process.env.API_KEY;
-            const url = `https://api.themoviedb.org/3/movie/${favorite.movieId}?&language=tr-TR&&api_key=${apiKey}`;
-            const response = await fetch(url);
-            const movie = await response.json();
-            favoriteMovies.push(movie);
-        }
-        // Favori filmleri kullanıcıya göstermek için bir view oluştur ve render et
-        res.render('favorites', { movies: favoriteMovies });
+        res.render('profile');
     } catch (error) {
         console.error('Hata:', error);
         res.status(500).send('Bir hata oluştu.');
     }
 });
 
-app.get('/watchlist', async (req, res) => {
+app.get('/profile/:username/favorites', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.redirect('/login');
+    }
+    
     try {
-        // Kullanıcı oturum açmış mı kontrol et
-        if (!req.isAuthenticated()) {
-            return res.redirect('/login'); // Oturum açmamışsa giriş sayfasına yönlendir
-        }
-        
-        // Kullanıcının favori filmlerini veri tabanından al
-        const watchlists = await UserList.find({ userId: req.user._id, listType: 'watchlist' });
-
-        // Favori filmleri listesi
-        const watchListMovies = [];
-
-        // Her bir favori filmin API isteğini yap ve diziye ekle
-        for (const watchlist of watchlists) {
-            const apiKey = process.env.API_KEY;
-            const url = `https://api.themoviedb.org/3/movie/${watchlist.movieId}?&language=tr-TR&&api_key=${apiKey}`;
-            const response = await fetch(url);
-            const movie = await response.json();
-            watchListMovies.push(movie);
-        }
-        // Favori filmleri kullanıcıya göstermek için bir view oluştur ve render et
-        res.render('watchlist', { movies: watchListMovies });
+        const favorites = await getFavorites(req.user._id);
+        res.render('favorites', { favorites });
     } catch (error) {
         console.error('Hata:', error);
         res.status(500).send('Bir hata oluştu.');
     }
 });
+
+app.get('/profile/:username/watchlist', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.redirect('/login');
+    }
+    
+    try {
+        const watchlist = await getWatchlist(req.user._id);
+        res.render('watchlist', { watchlist });
+    } catch (error) {
+        console.error('Hata:', error);
+        res.status(500).send('Bir hata oluştu.');
+    }
+});
+
+async function getFavorites(userId) {
+    const favorites = await UserList.find({ userId, listType: 'favorites' });
+    const apiKey = process.env.API_KEY;
+
+    // API çağrıları için bir dizi oluştur
+    const apiCalls = favorites.map(favorite => {
+        const url = `https://api.themoviedb.org/3/movie/${favorite.movieId}?&language=tr-TR&&api_key=${apiKey}`;
+        return fetch(url).then(response => response.json());
+    });
+
+    // Tüm API çağrılarını aynı anda başlat ve sonuçları bekle
+    const favoriteMovies = await Promise.all(apiCalls);
+
+    return favoriteMovies;
+}
+
+async function getWatchlist(userId) {
+    const watchlists = await UserList.find({ userId, listType: 'watchlist' });
+    const apiKey = process.env.API_KEY;
+
+    // API çağrıları için bir dizi oluştur
+    const apiCalls = watchlists.map(watchlist => {
+        const url = `https://api.themoviedb.org/3/movie/${watchlist.movieId}?&language=tr-TR&&api_key=${apiKey}`;
+        return fetch(url).then(response => response.json());
+    });
+
+    // Tüm API çağrılarını aynı anda başlat ve sonuçları bekle
+    const watchListMovies = await Promise.all(apiCalls);
+
+    return watchListMovies;
+}
 
 // Kullanıcı giriş işlemini gerçekleştir
 app.post("/login", passport.authenticate('local', {

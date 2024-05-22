@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
   <style>
+
     header {
       background-color: #042541;
       color: #FFFFFF;
@@ -67,8 +70,13 @@
       position: relative;
     }
 
-    .dropdown-content {
-      border-radius: 10px;
+    .dropdown-films {
+      position: relative;
+    }
+
+    .dropdown-content,
+    .dropdown-content-films {
+      border-radius: 3px;
       display: none;
       position: absolute;
       background-color: #ffffff;
@@ -76,27 +84,33 @@
       z-index: 1;
     }
 
-    .dropdown-content a {
-      color: #000000;
+    .dropdown-content a,
+    .dropdown-content-films a {
+      color: #666666;
       padding: 4px 12px;
       text-decoration: none;
       display: block;
     }
 
-    .dropdown-content a:last-child {
+    .dropdown-content a:hover,
+    .dropdown-content-films a:hover {
+      background-color: #042541;
+      color: #FFFFFF;
+    }
+
+    .dropdown-content a:last-child,
+    .dropdown-content-films a:last-child {
       margin-bottom: 8px;
     }
 
-    .dropdown-content a:first-child {
+    .dropdown-content a:first-child,
+    .dropdown-content-films a:first-child {
       margin-top: 8px;
     }
 
-    .dropdown:hover .dropdown-content {
-      display: block;
-    }
-
     .active-tab {
-      background-color: #F8F9FA;
+      background-color: #042541;
+      color: #FFFFFF;
     }
 
     button {
@@ -145,6 +159,18 @@
       font-size: 24px;
     }
 
+    .show {
+      display: block;
+    }
+
+    .show-films {
+      display: block;
+    }
+
+    .dropdown-films:hover .dropdown-content-films {
+      display: block;
+    }
+
   </style>
 </head>
 <body>
@@ -153,9 +179,9 @@
   <div class="nav-left">
     <a class="logo" href="/">MovieDB</a>
     <ul>
-      <li class="dropdown" id="films-tab">
-        <a href="#">Filmler</a>
-        <div class="dropdown-content">
+      <li class="dropdown-films" id="films-tab">
+        <a href="#" class="tab">Filmler</a>
+        <div class="dropdown-content-films">
           <a href="#" class="tab">Popüler</a>
           <a href="#" class="tab">Gösterimdekiler</a>
           <a href="#" class="tab">Yakında</a>
@@ -166,29 +192,26 @@
   </div>
   <nav class="nav-right">
     <ul>
+      
       <% if (!isLoggedIn) { %>
-        <!-- Kullanıcı giriş yapmamışsa -->
         <li><a href="/login">Giriş</a></li>
         <li><a href="/signup">Kaydol</a></li>
       <% } else { %>
-        <!-- Kullanıcı giriş yapmışsa -->
         <li class="dropdown" id="profile-tab">
-          <a href="#">Profil</a>
-          <div class="dropdown-content">
-            <a href="#" class="tab">Hesabım</a>
-            <a href="#" class="tab">İzleme Listem</a>
-            <a href="#" class="tab">Beğendiklerim</a>
+          <a href="#" id="profile-link"><%= user.username %></a>
+          <div class="dropdown-content" id="profile-content">
+            <a href="/profile/<%= user.username %>" class="tab">Hesabım</a>
+            <a href="/watchlist" class="tab">İzleme Listem</a>
+            <a href="/favorites" class="tab">Beğendiklerim</a>
             <a href="#" class="tab">Ayarlar</a>
-            <form action="/logout" method="post">
-              <button type="submit" class="tab" style="background-color: transparent; border: none; color: #000; width: 100%; text-align: left; padding: 4px 12px;">Çıkış</button>
-            </form>
+            <a href="/logout" class="tab">Çıkış</a>
           </div>
         </li>
       <% } %>
-      <li>
-        <a id="search-icon"><i class="fas fa-search"></i></a>
-        <a id="close-search" style="display: none"> <i class="fas fa-times"></i></a>
-      </li>
+        <li>
+          <a id="search-icon"><i class="fas fa-search"></i></a>
+          <a id="close-search" style="display: none"> <i class="fas fa-times"></i></a>
+        </li>
     </ul>
   </nav>
 </header>
@@ -201,7 +224,8 @@
 </div>
 
 <script>
-  document.getElementById('search-icon').addEventListener('click', function() {
+
+    document.getElementById('search-icon').addEventListener('click', function() {
     document.querySelector('#search-form input').value = '';
     document.getElementById('search-form-container').style.display = 'block';
     document.getElementById('search-icon').style.display = 'none';
@@ -213,6 +237,40 @@
     document.getElementById('search-form-container').style.display = 'none';
     document.getElementById('close-search').style.display = 'none';
     document.getElementById('search-icon').style.display = 'inline';
+  });
+
+  document.getElementById('profile-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('profile-content').classList.toggle('show');
+  });
+
+  window.onclick = function(event) {
+    if (!event.target.matches('#profile-link')) {
+      var dropdowns = document.getElementsByClassName('dropdown-content');
+      for (var i = 0; i < dropdowns.length; i++) {
+        var openDropdown = dropdowns[i];
+        if (openDropdown.classList.contains('show')) {
+          openDropdown.classList.remove('show');
+        }
+      }
+    }
+  }
+
+  var profileTabs = document.querySelectorAll('#profile-content .tab');
+
+  profileTabs.forEach(function(tab) {
+    tab.addEventListener('mouseover', function() {
+      profileTabs.forEach(function(tab) {
+        tab.classList.remove('active-tab');
+      });
+      this.classList.add('active-tab');
+    });
+  });
+
+  document.getElementById('profile-tab').addEventListener('mouseout', function() {
+    profileTabs.forEach(function(tab) {
+      tab.classList.remove('active-tab');
+    });
   });
 </script>
 
