@@ -15,11 +15,9 @@ const session = require('express-session');
 const http = require('http');
 const socketIo = require('socket.io');
 
-
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-
 
 // Middleware'leri tanımla
 app.use(express.json());
@@ -27,7 +25,6 @@ app.use(express.urlencoded({ extended: false }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.set('view engine', 'ejs');
-
 
 // Oturum yönetimi için middleware'leri tanımla
 app.use(session({
@@ -44,6 +41,7 @@ app.use(flash());
 
 app.use(helmet());
 app.use(compression());
+
 app.use((req, res, next) => {
     res.locals.isLoggedIn = req.isAuthenticated();
     res.locals.user = req.user || null;
