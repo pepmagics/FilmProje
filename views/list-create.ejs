@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const socket = io();
+            const searchInput = document.getElementById("searchInput");
+            const searchResults = document.getElementById("searchResults");
+            const movieList = document.getElementById("movieList");
+            const movieIds = [];
+
+            searchInput.addEventListener("input", async (e) => {
+                const query = e.target.value;
+                if (query.length < 3) return;
+                
+                const response = await fetch(`/search/movies?query=${query}`);
+                const movies = await response.json();
+                
+                searchResults.innerHTML = movies.map(movie => `
+                    <div class="search-result" data-movie-id="${movie.id}" data-title="${movie.title}" data-poster="${movie.poster_path}">
+                        <img src="https://image.tmdb.org/t/p/w92${movie.poster_path}" alt="${movie.title}">
+                        <span>${movie.title}</span>
+                    </div>
+                `).join('');
+            });
+
+            searchResults.addEventListener("click", (e) => {
+                const resultDiv = e.target.closest(".search-result");
+                if (!resultDiv) return;
+
+                const movieId = resultDiv.getAttribute("data-movie-id");
+                const title = resultDiv.getAttribute("data-title");
+                const poster = resultDiv.getAttribute("data-poster");
+
+                if (!movieIds.includes(movieId)) {
+                    movieIds.push(movieId);
+                    movieList.innerHTML += `
+                        <div class="movie-item" data-movie-id="${movieId}">
+                            <img src="https://image.tmdb.org/t/p/w92${poster}" alt="${title}">
+                            <span>${title}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            document.getElementById("saveList").addEventListener("click", async () => {
+                const title = document.getElementById("title").value;
+                const description = document.getElementById("description").value;
+                const movies = movieIds.map(movieId => {
+                    const movieDiv = document.querySelector(`.movie-item[data-movie-id="${movieId}"]`);
+                    return {
+                        movieId: movieId,
+                        title: movieDiv.querySelector("span").textContent,
+                        posterPath: movieDiv.querySelector("img").src.split("w92")[1]
+                    };
+                });
+
+                const response = await fetch('/profile/lists/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, description, movies })
+                });
+
+                if (response.ok) {
+                    alert('Liste başarıyla kaydedildi!');
+                    window.location.reload();
+                } else {
+                    alert('Liste kaydedilemedi!');
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Yeni Liste Oluştur</h1>
+        <form id="createListForm">
+            <div class="mb-3">
+                <label for="title" class="form-label">Başlık</label>
+                <input type="text" class="form-control" id="title" required>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Açıklama</label>
+                <textarea class="form-control" id="description" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="searchInput" class="form-label">Eklemek istediğin filmleri seç</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Film ara...">
+                <div id="searchResults" class="list-group mt-3"></div>
+            </div>
+            <div class="mb-3">
+                <h3>Seçilen Filmler</h3>
+                <div id="movieList" class="list-group"></div>
+            </div>
+            <button type="button" id="saveList" class="btn btn-primary">Listeyi Kaydet</button>
+        </form>
+    </div>
+</body>
+</html>

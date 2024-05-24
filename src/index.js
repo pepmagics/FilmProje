@@ -2,7 +2,8 @@ const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
-const { User, UserList } = require('./config');
+const { User, UserList, CustomList } = require('./config');
+
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const passport = require('passport');
@@ -213,6 +214,152 @@ app.get('/logout', (req, res) => {
         res.redirect('/');
     });
 });
+
+
+// Render list creation page
+app.get('/profile/:username/lists/create', (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.redirect('/login');
+    }
+    res.render('list-create');
+});
+
+// Handle dynamic movie search
+app.get('/search/movies', async (req, res) => {
+    const apiKey = process.env.API_KEY;
+    const query = req.query.query;
+
+    try {
+        const url = `https://api.themoviedb.org/3/search/movie?query=${query}&language=en-US&api_key=${apiKey}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        res.json(data.results);
+    } catch (error) {
+        console.error('Error fetching movies:', error);
+        res.status(500).send('Error fetching movies');
+    }
+});
+
+// Handle list creation
+app.post('/profile/lists/create', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).send('Unauthorized');
+    }
+
+    const { title, description, movies } = req.body;
+
+    try {
+        const newList = new CustomList({
+            userId: req.user._id,
+            title,
+            description,
+            movies
+        });
+
+        await newList.save();
+        res.status(200).send('List created successfully');
+    } catch (error) {
+        console.error('Error creating list:', error);
+        res.status(500).send('Error creating list');
+    }
+});
+
+// Belirli bir listeyi göster
+app.get('/list/:id', async (req, res) => {
+    try {
+        const list = await CustomList.findById(req.params.id).populate('userId', 'username');
+        if (!list) {
+            return res.status(404).send('List not found');
+        }
+
+        // Oturum açmış olan kullanıcının kimliği
+        const loggedInUserId = req.isAuthenticated() ? req.user._id.toString() : null;
+
+        // Listenin sahibinin kimliği
+        const listOwnerId = list.userId._id.toString();
+
+        // Eğer liste paylaşılan bir liste değilse ve oturum açmış kullanıcı liste sahibi değilse, yönlendirme yap
+        if (!list.isShared && loggedInUserId !== listOwnerId) {
+            return res.redirect('/');
+        }
+
+        const apiKey = process.env.API_KEY;
+        const movieIds = list.movies.map(movie => movie.movieId);
+
+        // API çağrıları için bir dizi oluştur
+        const apiCalls = movieIds.map(movieId => {
+            const url = `https://api.themoviedb.org/3/movie/${movieId}?&language=tr-TR&&api_key=${apiKey}`;
+            return fetch(url).then(response => response.json());
+        });
+
+        // Tüm API çağrılarını aynı anda başlat ve sonuçları bekle
+        const movies = await Promise.all(apiCalls);
+
+        // Movies array'ini güncelle
+        const updatedMovies = list.movies.map(movie => {
+            const movieDetails = movies.find(m => m.id == movie.movieId);
+            return {
+                movieId: movie.movieId,
+                title: movieDetails.title,
+                posterPath: movieDetails.poster_path
+            };
+        });
+
+        res.render('list-details', { list, movies: updatedMovies});
+    } catch (error) {
+        console.error('Hata:', error);
+        res.status(500).send('Bir hata oluştu.');
+    }
+});
+
+// Paylaşılan listeleri göster
+app.get('/shared-lists', async (req, res) => {
+    try {
+        const sharedLists = await CustomList.find({ isShared: true }).populate('userId', 'username');
+        res.render('shared-lists', { sharedLists });
+    } catch (error) {
+        console.error('Hata:', error);
+        res.status(500).send('Bir hata oluştu.');
+    }
+});
+
+app.post('/share-list', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).send({ success: false, message: 'Unauthorized' });
+    }
+
+    const { listId } = req.body;
+
+    try {
+        await CustomList.findByIdAndUpdate(listId, { isShared: true });
+        res.send({ success: true });
+    } catch (error) {
+        console.error('Liste paylaşma hatası:', error);
+        res.status(500).send({ success: false, message: 'Liste paylaşma hatası' });
+    }
+});
+
+// Fetch custom lists
+app.get('/profile/:username/lists', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.redirect('/login');
+    }
+
+    try {
+        const customLists = await getCustomLists(req.user._id);
+        res.render('lists', { customLists });
+    } catch (error) {
+        console.error('Error fetching custom lists:', error);
+        res.status(500).send('An error occurred.');
+    }
+});
+
+// Function to get custom lists
+async function getCustomLists(userId) {
+    const customLists = await CustomList.find({ userId });
+
+    return customLists;
+}
 
 app.get('/profile/:username', async (req, res) => {
     if (!req.isAuthenticated()) {

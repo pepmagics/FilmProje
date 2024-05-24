@@ -35,7 +35,7 @@ const UserListSchema = new mongoose.Schema({
     },
     listType: {
         type: String,
-        enum: ['favorites', 'watchlist', 'custom'], // Sadece belirli listeleri kabul eder
+        enum: ['favorites', 'watchlist'], // Sadece belirli listeleri kabul eder
         required: true
     },
     movieId: {
@@ -44,14 +44,33 @@ const UserListSchema = new mongoose.Schema({
     }
 });
 
+const customListSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users', // Kullanıcı modeline referans
+        required: true
+    },
+    title: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String, 
+        required: true
+    },
+    movies: [{ movieId: String, title: String, posterPath: String }],
+    isShared: { type: Boolean, default: false }
+});
+
 // Kullanıcı modeli
 const User = mongoose.model("users", LoginSchema);
-
+const CustomList = mongoose.model('CustomList', customListSchema);
 // Kullanıcı listesi modeli
 const UserList = mongoose.model("userList", UserListSchema);
 
 // Modülleri dışa aktar
 module.exports = {
     User,
-    UserList
+    UserList,
+    CustomList
 };

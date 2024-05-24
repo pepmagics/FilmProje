@@ -63,9 +63,13 @@
             transform: scaleX(0);
             transition: all 0.3s ease-in-out;
         }
+        .menu-bar a.active::after,
         .menu-bar a:hover::after {
             visibility: visible;
             transform: scaleX(1);
+        }
+        .menu-bar a.active {
+            color: #000;
         }
         .menu-bar a:hover {
             color: #000;
@@ -141,9 +145,9 @@
 
     <div class="menu-bar">
         <a id="home-menu" href="/profile/<%= user.username %>">Ana menü</a>
-        <a id="lists-menu">Listeler</a>
+        <a id="lists-menu" href="/profile/<%= user.username %>/lists" >Listeler</a>
         <a id="favorites-menu" href="/profile/<%= user.username %>/favorites">Favoriler</a>
-        <a id="watchlist-menu" href="/profile/<%= user.username %>/watchlist">Takip Listem</a>
+        <a id="watchlist-menu" href="/profile/<%= user.username %>/watchlist" class="active">Takip Listem</a>
     </div>
 
     <div class="content-section">
@@ -151,7 +155,7 @@
             <h3>İzlenecek Listem</h3>
             <div class="row">
                 <% watchlist.forEach(movie => { %>
-                <div class="col-sm-6 col-md-4 col-lg-3">
+                <div class="col-sm-6 col-md-6 col-lg-3">
                     <div class="card mb-4">
                         <img src="https://image.tmdb.org/t/p/original<%= movie.poster_path %>" class="card-img-top" alt="<%= movie.title %>">
                         <div class="card-body">

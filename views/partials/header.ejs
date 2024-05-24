@@ -201,8 +201,8 @@
           <a href="#" id="profile-link"><%= user.username %></a>
           <div class="dropdown-content" id="profile-content">
             <a href="/profile/<%= user.username %>" class="tab">Hesabım</a>
-            <a href="/watchlist" class="tab">İzleme Listem</a>
-            <a href="/favorites" class="tab">Beğendiklerim</a>
+            <a href="/profile/<%= user.username %>/watchlist" class="tab">İzleme Listem</a>
+            <a href="/profile/<%= user.username %>/favorites" class="tab">Beğendiklerim</a>
             <a href="#" class="tab">Ayarlar</a>
             <a href="/logout" class="tab">Çıkış</a>
           </div>

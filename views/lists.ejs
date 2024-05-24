@@ -12,14 +12,14 @@
 
     <style>
         body {
-          margin-top: 64px;
-          color: #fff;
-          background-color: #042541;
-          font-family: "Source Sans 3", Arial, sans-serif;
-          font-weight: 500;
-          font-style: normal;
+            margin-top: 64px;
+            color: #fff;
+            background-color: #042541;
+            font-family: "Source Sans 3", Arial, sans-serif;
+            font-weight: 500;
+            font-style: normal;
         }
-
+    
         .container-fluid {
             height: 230px;
             font-size: 24px;
@@ -75,47 +75,50 @@
         }
         .content-section {
             width: 100%;
+            height: 250px;
             padding: 20px;
             background-color: #fff;
             color: #000;
         }
-        .card {
-            position: relative;
-            overflow: hidden;
+        .list-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        .card img {
-            transition: transform 0.5s ease;
+        .list-group-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex: 1 1 calc(50% - 10px);
+            max-width: calc(50% - 10px);
+            padding: 30px; /* Boyutları artır */
+            position: relative; /* Butonları konumlandırmak için */
+            font-size: 20px; /* Yazı boyutunu artır */
+            background-color: #f8f9fa; /* Arka plan rengi */
+            border: 1px solid #ddd; /* Kenarlık */
+            border-radius: 8px; /* Köşeleri yuvarla */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Gölge efekti */
+            transition: transform 0.2s ease; /* Hover efekti için geçiş */
+            margin-bottom: 20px; /* Alt boşluk ekleyin */
         }
-        .card:hover img {
-            transform: scale(1.1);
+        .list-group-item:hover {
+            transform: scale(1.02); /* Hover efekti */
         }
-        .card-body {
-            position: absolute;
-            bottom: 0;
-            left: 0;
+
+        .list-group-item span {
+            margin-bottom: 20px; /* Başlık ile butonlar arasındaki boşluk */
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
             width: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            transform: translateY(100%);
-            transition: transform 0.5s ease;
-            padding: 10px;
+            margin-top: 10px;
         }
-        .card:hover .card-body {
-            transform: translateY(0);
-        }
-        .card-title {
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-        .card-text {
-            font-size: 14px;
-            height: 60px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .btn-primary {
-            font-size: 14px;
-            padding: 5px 10px;
+
+        .detail-button, .share-button {
+            width: 48%;
         }
     </style>
     
@@ -144,30 +147,58 @@
 
     <div class="menu-bar">
         <a id="home-menu" href="/profile/<%= user.username %>">Ana menü</a>
-        <a id="lists-menu" href="/profile/<%= user.username %>/lists" >Listeler</a>
-        <a id="favorites-menu" href="/profile/<%= user.username %>/favorites" class="active">Favoriler</a>
+        <a id="lists-menu" href="/profile/<%= user.username %>/lists" class="active">Listeler</a>
+        <a id="favorites-menu" href="/profile/<%= user.username %>/favorites">Favoriler</a>
         <a id="watchlist-menu" href="/profile/<%= user.username %>/watchlist">Takip Listem</a>
     </div>
 
     <div class="content-section">
         <div class="container">
-            <h3>Favorilerim</h3>
             <div class="row">
-                <% favorites.forEach(movie => { %>
-                <div class="col-sm-6 col-md- col-lg-3">
-                    <div class="card mb-4">
-                        <img src="https://image.tmdb.org/t/p/original<%= movie.poster_path %>" class="card-img-top" alt="<%= movie.title %>">
-                        <div class="card-body">
-                            <h5 class="card-title"><%= movie.title %></h5>
-                            <p class="card-text"><%= movie.overview %></p>
-                            <a href="/movie/<%= movie.id %>" class="btn btn-primary">Detaylar</a>
-                        </div>
-                    </div>
+                <div class="col-md-12">
+                    <h3>Listelerim</h3>
+                    <ul class="list-group">
+                        <% if (customLists && customLists.length > 0) { %>
+                            <% customLists.forEach(list => { %>
+                                <li class="list-group-item">
+                                    <span><%= list.title %></span>
+                                    <div class="button-group">
+                                        <a href="/list/<%= list._id %>" class="btn btn-primary detail-button">Detaylar</a>
+                                        <button class="btn btn-secondary share-button" onclick="shareList('<%= list._id %>', '<%= user.username %>')">Paylaş</button>
+                                    </div>
+                                </li>
+                            <% }) %>
+                        <% } else { %>
+                            <p>Hiç liste bulunamadı.</p>
+                        <% } %>
+                    </ul>
                 </div>
-                <% }) %>
             </div>
         </div>
     </div>
     
+    <script>
+        function shareList(listId) {
+            fetch(`/share-list`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ listId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Liste başarıyla paylaşıldı!');
+                } else {
+                    alert('Liste paylaşma sırasında bir hata oluştu.');
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                alert('Liste paylaşma sırasında bir hata oluştu.');
+            });
+        }
+    </script>
 </body>
 </html>
