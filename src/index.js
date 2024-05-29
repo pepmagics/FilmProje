@@ -2,9 +2,7 @@ const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
-const { User, UserList, CustomList } = require('./config');
-const helmet = require('helmet');
-const compression = require('compression');
+const { User, UserList, CustomList, Comment, Like, getLikeCount } = require('./config');
 
 require('dotenv').config();
 const bcrypt = require('bcrypt');
@@ -39,8 +37,6 @@ app.use(passport.session());
 
 app.use(flash());
 
-app.use(helmet());
-app.use(compression());
 
 app.use((req, res, next) => {
     res.locals.isLoggedIn = req.isAuthenticated();
@@ -190,7 +186,7 @@ app.post("/signup", async (req, res) => {
     let checkingMessage = true; // Default olarak true ayarlandı
 
     // Kullanıcı adı zaten kullanımda mı kontrol et
-    const existingUser = await await User.findOne({ username });
+    const existingUser = await User.findOne({ username });
     if (existingUser) {
         return res.render("signup", { message: "Kullanıcı zaten kayıtlı. Lütfen farklı bir kullanıcı adı seçin.", checkingMessage });
     }
@@ -216,7 +212,6 @@ app.get('/logout', (req, res) => {
     });
 });
 
-
 // Render list creation page
 app.get('/profile/:username/lists/create', (req, res) => {
     if (!req.isAuthenticated()) {
@@ -241,6 +236,47 @@ app.get('/search/movies', async (req, res) => {
     }
 });
 
+app.post('/list/:id/comment', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.redirect('/login');
+    }
+
+    const { comment } = req.body;
+    const listId = req.params.id;
+    const userId = req.user._id;
+
+    try {
+        const newComment = new Comment({ listId, userId, comment });
+        await newComment.save();
+        res.redirect('/shared-lists');
+    } catch (error) {
+        console.error('Error adding comment:', error);
+        res.status(500).send('An error occurred.');
+    }
+});
+
+app.post('/list/:id/like', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.redirect('/login');
+    }
+
+    const listId = req.params.id;
+    const userId = req.user._id;
+
+    try {
+        const existingLike = await Like.findOne({ listId, userId });
+
+        if (!existingLike) {
+            const newLike = new Like({ listId, userId });
+            await newLike.save();
+        }
+
+        res.redirect('/shared-lists');
+    } catch (error) {
+        console.error('Error adding like:', error);
+        res.status(500).send('An error occurred.');
+    }
+});
 // Handle list creation
 app.post('/profile/lists/create', async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -316,13 +352,25 @@ app.get('/list/:id', async (req, res) => {
 // Paylaşılan listeleri göster
 app.get('/shared-lists', async (req, res) => {
     try {
-        const sharedLists = await CustomList.find({ isShared: true }).populate('userId', 'username');
+        const sharedLists = await CustomList.find({ isShared: true })
+            .populate('userId', 'username');
+
+        // Fetch comments for each list
+        for (let list of sharedLists) {
+            const comments = await Comment.find({ listId: list._id }).populate('userId', 'username');
+            list.comments = comments;
+
+            // Get like count for each list
+            list.likeCount = await getLikeCount(list._id);
+        }
+
         res.render('shared-lists', { sharedLists });
     } catch (error) {
-        console.error('Hata:', error);
-        res.status(500).send('Bir hata oluştu.');
+        console.error('Error fetching shared lists:', error);
+        res.status(500).send('An error occurred.');
     }
 });
+
 
 app.post('/share-list', async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -435,6 +483,84 @@ async function getWatchlist(userId) {
 
     return watchListMovies;
 }
+
+const getUserData = async (userId) => {
+    const userFavorites = await UserList.find({ userId, listType: 'favorites' });
+    const movieData = [];
+
+    for (const favorite of userFavorites) {
+        const movie = await getMovieData(favorite.movieId);
+        movieData.push(movie);
+    }
+
+    return movieData;
+};
+
+const getMovieData = async (movieId) => {
+    const apiKey = process.env.API_KEY;
+    const url = `https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}&language=tr-TR`;
+    const response = await fetch(url);
+    const movie = await response.json();
+
+    return movie;
+};
+
+const getSimilarMovies = async (movieId) => {
+    const apiKey = process.env.API_KEY;
+    const url = `https://api.themoviedb.org/3/movie/${movieId}/similar?api_key=${apiKey}&language=tr-TR`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data.results.slice(0, 5); // Return the first 5 similar movies
+    } catch (error) {
+        console.error(`Error fetching similar movies for movie ID ${movieId}:`, error);
+        return []; // Return an empty array in case of error
+    }
+};
+
+app.get('/recommendations', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.redirect('/login');
+    }
+
+    try {
+        const userId = req.user._id.toString();
+        const userFavorites = await getUserData(userId);
+
+        const similarMoviesPromises = userFavorites.map(favorite => getSimilarMovies(favorite.id));
+        const similarMoviesArray = await Promise.all(similarMoviesPromises);
+
+        const similarMovies = similarMoviesArray.flat(); // Flatten the array of similar movies
+
+        res.render('recommendations', { similarMovies: similarMovies.slice(0, 8), totalMovies: similarMovies.length });
+    } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        res.status(500).send('An error occurred.');
+    }
+});
+
+app.get('/more-recommendations', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.redirect('/login');
+    }
+
+    try {
+        const userId = req.user._id.toString();
+        const offset = parseInt(req.query.offset, 8) || 8;
+
+        const userFavorites = await getUserData(userId);
+        const similarMoviesPromises = userFavorites.map(favorite => getSimilarMovies(favorite.id));
+        const similarMoviesArray = await Promise.all(similarMoviesPromises);
+
+        const similarMovies = similarMoviesArray.flat(); // Flatten the array of similar movies
+
+        res.json({ similarMovies: similarMovies.slice(offset, offset + 8) });
+    } catch (error) {
+        console.error('Error fetching more recommendations:', error);
+        res.status(500).send('An error occurred.');
+    }
+});
+
 
 // Kullanıcı giriş işlemini gerçekleştir
 app.post("/login", passport.authenticate('local', {

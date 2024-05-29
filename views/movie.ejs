@@ -141,35 +141,37 @@
                                             <% }); %> • <%= formattedRuntime %>
                         </p>
 
-                        <div class="conteiner">
+                        <div class="conteiner mb-3">
                             <div class="row">
-                                <div class="col-md-2">
-                                    <p>IMDB: <%= movie.vote_average %></p>
+                                <div class="col-md-1">
+                                    <i class="fa-brands fa-imdb fa-xl" style="color: #F4C518;"></i> <%= movie.vote_average.toFixed(1) %>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="row">
                                         <div class="col-md-4">
 
                                     <button id="favoriEkleButton" type="button" onclick="favoriyeEkle('<%= movie.id %>', '<%= userid %>')" class="<%= notFavoriteClass %>">
-                                        <i class="fa-regular fa-heart fa-xl animate-heart" style="color: #fc7474;"></i>
+                                        <i class="fa-regular fa-heart fa-lg" style="color: #fc7474;"></i>
                                     </button>
 
                                     <button id="favoriSilButton" type="button" onclick="favoridenKaldir('<%= movie.id %>', '<%= userid %>')" class="<%= isFavoriteClass %>">
-                                        <i class="fa-solid fa-heart fa-xl animate-heart" style="color: #fc7474;"></i>
+                                        <i class="fa-solid fa-heart fa-lg" style="color: #fc7474;"></i>
                                     </button>
                                         </div>
 
                                         <div class="col-md-4">
                                             <button id="watchListEkleButton" type="button" onclick="watchlistEkle('<%= movie.id %>', '<%= userid %>')" class="<%= notWatchListClass %>">
-                                                <i class="fa-regular fa-bookmark fa-xl" style="color: #80aeff;"></i>
+                                                <i class="fa-regular fa-bookmark fa-lg" style="color: #80aeff;"></i>
                                             </button>
         
                                             <button id="watchListSilButton" type="button" onclick="watchlistKaldir('<%= movie.id %>', '<%= userid %>')" class="<%= isWatchListClass %>">
-                                                <i class="fa-solid fa-bookmark fa-xl" style="color: #80aeff;"></i>
+                                                <i class="fa-solid fa-bookmark fa-lg" style="color: #80aeff;"></i>
                                             </button>
-
-
-        
+                                        </div>
+                                        <div class="col-md-4">
+                                            <a href="/profile/{{username}}/lists/create">
+                                                <i class="fa-solid fa-list fa-lg"></i>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -184,7 +186,8 @@
 
                             </div>
                         </div>
-                        <h4>Özet</h4>
+                        <em style="color: lightgrey;"><%= movie.tagline %></em>
+                        <h4 class="mt-3">Özet</h4>
                         <p>
                             <%= movie.overview %>
                         </p>

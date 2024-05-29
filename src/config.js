@@ -1,17 +1,15 @@
-const { ObjectId } = require("mongodb");
 const mongoose = require("mongoose");
 
-// Veritabanı bağlantısı
+// Connect to database
 const connect = mongoose.connect("mongodb+srv://huzeyfeatc9:XwjBEo6khRtalkfs@movieapp.rhykss9.mongodb.net/movieApp");
 
 connect.then(() => {
-    console.log("Database connected succesfully");
-})
-.catch(() => {
-    console.log("Database cannot be connected");
+    console.log("Database connected successfully");
+}).catch(() => {
+    console.log("Database connection failed");
 });
 
-// Kullanıcı schema'sı
+// User schema
 const LoginSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -27,27 +25,27 @@ const LoginSchema = new mongoose.Schema({
     }
 });
 
-// Kullanıcı listesi schema'sı
+// User list schema
 const UserListSchema = new mongoose.Schema({
     userId: {
-        type: mongoose.Schema.Types.ObjectId, // Kullanıcı kimliği
+        type: mongoose.Schema.Types.ObjectId, // User ID
         required: true
     },
     listType: {
         type: String,
-        enum: ['favorites', 'watchlist'], // Sadece belirli listeleri kabul eder
+        enum: ['favorites', 'watchlist'], // Allowed list types
         required: true
     },
     movieId: {
-        type: String, // TMDB veya benzeri bir platformdan alınan film kimliği
+        type: String, // Movie ID from TMDB or similar platform
         required: true
     }
 });
 
-const customListSchema = new mongoose.Schema({
+const CustomListSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'users', // Kullanıcı modeline referans
+        ref: 'users', // Reference to user model
         required: true
     },
     title: {
@@ -55,22 +53,64 @@ const customListSchema = new mongoose.Schema({
         required: true
     },
     description: {
-        type: String, 
+        type: String,
         required: true
     },
     movies: [{ movieId: String, title: String, posterPath: String }],
     isShared: { type: Boolean, default: false }
 });
 
-// Kullanıcı modeli
-const User = mongoose.model("users", LoginSchema);
-const CustomList = mongoose.model('CustomList', customListSchema);
-// Kullanıcı listesi modeli
-const UserList = mongoose.model("userList", UserListSchema);
+const CommentSchema = new mongoose.Schema({
+    listId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'CustomList',
+        required: true
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users',
+        required: true
+    },
+    comment: {
+        type: String,
+        required: true
+    },
+    timestamp: {
+        type: Date,
+        default: Date.now
+    }
+});
 
-// Modülleri dışa aktar
+const LikeSchema = new mongoose.Schema({
+    listId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'CustomList',
+        required: true
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users',
+        required: true
+    }
+});
+
+const User = mongoose.model("users", LoginSchema);
+const UserList = mongoose.model("userList", UserListSchema);
+const CustomList = mongoose.model('CustomList', CustomListSchema);
+const Comment = mongoose.model('Comment', CommentSchema);
+const Like = mongoose.model('Like', LikeSchema);
+
+// Function to get like count
+const getLikeCount = async (listId) => {
+    return await Like.countDocuments({ listId });
+};
+
+// Export models and utility function
 module.exports = {
     User,
     UserList,
-    CustomList
+    CustomList,
+    Comment,
+    Like,
+    getLikeCount
 };
