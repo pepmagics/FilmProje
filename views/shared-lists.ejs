@@ -23,10 +23,8 @@
                     </form>
                     <span><%= list.likeCount %> Beğeni</span>
 
-                   
-
                     <!-- Display comments dropdown -->
-                    <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#comments-<%= list._id %>" aria-expanded="false" aria-controls="comments-<%= list._id %>">
+                    <button class="btn btn-link float-end" type="button" data-bs-toggle="collapse" data-bs-target="#comments-<%= list._id %>" aria-expanded="false" aria-controls="comments-<%= list._id %>">
                         Yorumları Göster/Gizle
                     </button>
                     <div class="collapse" id="comments-<%= list._id %>">
@@ -42,6 +40,7 @@
                                 <div class="border p-2 mb-2">
                                     <small class="text-muted"><%= comment.userId.username %>:</small>
                                     <p class="mb-0"><%= comment.comment %></p>
+                                    <small class="text-muted"><%= new Date(comment.timestamp).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) %></small>
                                 </div>
                             <% }) %>
                         <% } else { %>
